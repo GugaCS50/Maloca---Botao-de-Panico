@@ -1,0 +1,106 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <UrlEncode.h>
+const char* ssid = "Starlink_CIT";
+const char* password = "Ufrr@2024Cit";
+
+#define botao 21
+#define led1 23
+#define led2 2
+#define led3 19
+#define buzzer 18
+
+bool flag = false;
+bool estado_anterior = 0;
+bool mensagem_enviada = false;
+
+String phoneNumber1 = "559591695093";
+String apiKey1 = "4142970";
+String phoneNumber2 = "559581243515";
+String apiKey2 = "1502504";
+
+void sendMessage(String phoneNumber, String apiKey, String message) {
+
+  String url = "https://api.callmebot.com/whatsapp.php?phone=" + phoneNumber + "&apikey=" + apiKey + "&text=" + urlEncode(message);
+  HTTPClient http;
+  http.begin(url);
+
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+  int httpResponseCode = http.POST(url);
+  if (httpResponseCode == 200) {
+    Serial.println("Mensagem enviada com sucesso");
+  } else {
+    Serial.println("Erro no envio da mensagem");
+    Serial.print("HTTP response code: ");
+    Serial.println(httpResponseCode);
+  }
+  http.end();
+}
+void setup() {
+  Serial.begin(115200);
+  pinMode(botao, INPUT_PULLUP);
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+  pinMode(led3, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  digitalWrite(led1, LOW);
+  digitalWrite(led2, LOW);
+  digitalWrite(led3, LOW);
+  digitalWrite(buzzer, LOW);
+  WiFi.begin(ssid, password);
+  Serial.println("Conectando");
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    digitalWrite(led2, !digitalRead(led2));
+  }
+  
+  Serial.println("");
+  Serial.print("Conectado ao WiFi neste IP ");
+  digitalWrite(led2, HIGH);
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+	int estado_botao = digitalRead(botao);
+	if (estado_botao == 1 && estado_anterior == 0) {
+		flag = !flag;
+		if (flag && !mensagem_enviada) {
+		  digitalWrite(led1,HIGH);
+		  Serial.println("Botão Pressionado, enviando mensagem");
+		  sendMessage(phoneNumber1, apiKey1, "Teste 1");
+		  sendMessage(phoneNumber2, apiKey2, "Teste 2");
+		  tone(buzzer,1000);
+		  delay(500);
+		  mensagem_enviada = true;
+		}
+
+		if (!flag) {
+		  mensagem_enviada = false;
+		}
+	 }
+	  
+	 estado_anterior = estado_botao;
+
+	if (flag) {
+	  tone(buzzer, 1500);
+	  digitalWrite(led1, LOW);
+	  digitalWrite(led3, HIGH);
+	  delay(500);
+	  tone(buzzer, 1000);
+	  digitalWrite(led1, HIGH);
+	  digitalWrite(led3, LOW);
+	  delay(500);
+	  tone(buzzer, 1500);
+	  digitalWrite(led1, LOW);
+	  digitalWrite(led3, HIGH);
+	  delay(500);
+	  noTone(buzzer);
+	  flag = 0;
+	}else {
+		digitalWrite(led1, LOW);
+		digitalWrite(led3, LOW);
+	}
+}
